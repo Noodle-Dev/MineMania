@@ -40,40 +40,28 @@ public class Economy {
         sellPrices = new HashMap<>();
         mineralNames = new ArrayList<>();
 
-        loadMineralData();
+        loadMineralData(); // Carga los precios iniciales
 
+        // Calcula los precios de venta iniciales
         for (String mineral : buyPrices.keySet()) {
             sellPrices.put(mineral, buyPrices.get(mineral) * 0.7);
         }
     }
 
     private void loadMineralData() {
-        try {
-            List<String> lines = Files.readAllLines(Paths.get("mineral_data.json"));
+        // Lógica de carga de JSON eliminada por simplicidad,
+        // ya que no estaba implementada.
+        // Se usan precios predeterminados directamente.
 
-            buyPrices.put("💎 Diamante", 50.0);
-            buyPrices.put("⛏️ Carbón", 5.0);
-            buyPrices.put("🧪 Uranio", 150.0);
-            buyPrices.put("💰 Oro", 80.0);
+        buyPrices.put("💎 Diamante", 50.0);
+        buyPrices.put("⛏️ Carbón", 5.0);
+        buyPrices.put("🧪 Uranio", 150.0);
+        buyPrices.put("💰 Oro", 80.0);
 
-            mineralNames.add("💎 Diamante");
-            mineralNames.add("⛏️ Carbón");
-            mineralNames.add("🧪 Uranio");
-            mineralNames.add("💰 Oro");
-
-        } catch (IOException e) {
-            System.err.println("Advertencia: No se pudo cargar mineral_data.json. Usando precios predeterminados.");
-
-            buyPrices.put("💎 Diamante", 50.0);
-            buyPrices.put("⛏️ Carbón", 5.0);
-            buyPrices.put("🧪 Uranio", 150.0);
-            buyPrices.put("💰 Oro", 80.0);
-
-            mineralNames.add("💎 Diamante");
-            mineralNames.add("⛏️ Carbón");
-            mineralNames.add("🧪 Uranio");
-            mineralNames.add("💰 Oro");
-        }
+        mineralNames.add("💎 Diamante");
+        mineralNames.add("⛏️ Carbón");
+        mineralNames.add("🧪 Uranio");
+        mineralNames.add("💰 Oro");
     }
 
     private void startPriceUpdates() {
@@ -81,7 +69,11 @@ public class Economy {
         priceTimer.start();
     }
 
-    public boolean buyPlant(String mineralName) {
+    /**
+     * Compra un mineral, descontando el dinero.
+     * (Antes llamado buyPlant)
+     */
+    public boolean buyMineral(String mineralName) {
         double price = buyPrices.get(mineralName);
         if (money >= price) {
             money -= price;
@@ -90,7 +82,11 @@ public class Economy {
         return false;
     }
 
-    public void sellPlant(String mineralName) {
+    /**
+     * Vende un mineral, aumentando el dinero.
+     * (Antes llamado sellPlant)
+     */
+    public void sellMineral(String mineralName) {
         double price = sellPrices.get(mineralName);
         money += price;
     }
@@ -111,13 +107,17 @@ public class Economy {
         // Actualización regular de precios sin AI
         for (String mineral : new ArrayList<>(buyPrices.keySet())) {
             double currentBuyPrice = buyPrices.get(mineral);
+            // Fluctuación entre -20% y +20%
             double fluctuation = (random.nextDouble() * 0.4) - 0.2;
             double newBuyPrice = currentBuyPrice * (1 + fluctuation);
 
+            // Asegura que los precios se mantengan en un rango razonable
             newBuyPrice = Math.max(5.0, Math.min(300.0, newBuyPrice));
 
+            // Redondea a 2 decimales
             buyPrices.put(mineral, Math.round(newBuyPrice * 100.0) / 100.0);
 
+            // Actualiza el precio de venta basado en el nuevo precio de compra
             double newSellPrice = newBuyPrice * 0.7;
             sellPrices.put(mineral, Math.round(newSellPrice * 100.0) / 100.0);
         }

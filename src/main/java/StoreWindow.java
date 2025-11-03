@@ -15,21 +15,22 @@ public class StoreWindow extends JFrame {
     private javax.swing.Timer refreshTimer;
     private List<String> mineralNames;
 
-    // --- PALETA MODERNA 2024 ---
-    private static final Color BG_DARK = new Color(13, 17, 23);
-    private static final Color CARD_BG = new Color(22, 27, 34);
-    private static final Color ACCENT_PRIMARY = new Color(47, 129, 247);
-    private static final Color ACCENT_SECONDARY = new Color(130, 84, 255);
-    private static final Color SUCCESS_COLOR = new Color(34, 197, 94);
-    private static final Color TEXT_PRIMARY = new Color(248, 250, 252);
-    private static final Color TEXT_SECONDARY = new Color(148, 163, 184);
-    private static final Color BORDER_COLOR = new Color(48, 54, 61);
+    // --- NUEVA PALETA: MODO CLARO (CLEAN & PROFESSIONAL) ---
+    private static final Color BG_LIGHT = new Color(248, 249, 250); // Gris muy claro
+    private static final Color CARD_BG_LIGHT = new Color(255, 255, 255); // Blanco
+    private static final Color ACCENT_PRIMARY = new Color(0, 123, 255); // Azul primario
+    private static final Color ACCENT_SECONDARY = new Color(23, 162, 184); // Teal/Cyan
+    private static final Color SUCCESS_COLOR = new Color(40, 167, 69); // Verde
+    private static final Color TEXT_PRIMARY_LIGHT = new Color(33, 37, 41); // Casi negro
+    private static final Color TEXT_SECONDARY_LIGHT = new Color(108, 117, 125); // Gris oscuro
+    private static final Color BORDER_COLOR_LIGHT = new Color(222, 226, 230); // Gris claro
 
     // --- FUENTES MODERNAS ---
-    private static final Font TITLE_FONT = new Font("Segoe UI", Font.BOLD, 24);
-    private static final Font SUBTITLE_FONT = new Font("Segoe UI", Font.BOLD, 16);
-    private static final Font UI_FONT = new Font("Segoe UI", Font.PLAIN, 14);
-    private static final Font MONEY_FONT = new Font("Segoe UI", Font.BOLD, 18);
+    private static final Font TITLE_FONT = new Font("Inter", Font.BOLD, 24);
+    private static final Font SUBTITLE_FONT = new Font("Inter", Font.BOLD, 16);
+    private static final Font UI_FONT = new Font("Inter", Font.PLAIN, 14);
+    private static final Font MONEY_FONT = new Font("Inter", Font.BOLD, 18);
+
 
     public StoreWindow(String userEmail) {
         this.economy = Economy.getInstance();
@@ -49,8 +50,8 @@ public class StoreWindow extends JFrame {
         setSize(900, 650);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        getContentPane().setBackground(BG_DARK);
-        setLayout(new BorderLayout(25, 25));
+        getContentPane().setBackground(BG_LIGHT); // Fondo claro
+        setLayout(new BorderLayout(20, 20)); // Un poco más de espacio
 
         // Panel Superior
         JPanel topPanel = createTopPanel(userEmail);
@@ -60,43 +61,46 @@ public class StoreWindow extends JFrame {
         JSplitPane mainSplitPane = createMainSplitPane();
         add(mainSplitPane, BorderLayout.CENTER);
 
+        // Padding general
+        getRootPane().setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
         setVisible(true);
     }
 
     private JPanel createTopPanel(String userEmail) {
         JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.setBackground(BG_DARK);
-        topPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 10, 30));
+        topPanel.setBackground(BG_LIGHT); // Fondo claro
+        topPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
         // Título y usuario
         JPanel titlePanel = new JPanel(new BorderLayout());
-        titlePanel.setBackground(BG_DARK);
+        titlePanel.setBackground(BG_LIGHT); // Fondo claro
 
         JLabel title = new JLabel("💎 Mina Virtual");
         title.setFont(TITLE_FONT);
-        title.setForeground(TEXT_PRIMARY);
+        title.setForeground(TEXT_PRIMARY_LIGHT); // Texto oscuro
 
         JLabel userLabel = new JLabel("👤 " + userEmail);
         userLabel.setFont(UI_FONT);
-        userLabel.setForeground(TEXT_SECONDARY);
+        userLabel.setForeground(TEXT_SECONDARY_LIGHT); // Texto secundario
 
         titlePanel.add(title, BorderLayout.WEST);
         titlePanel.add(userLabel, BorderLayout.EAST);
 
         // Panel de dinero
         JPanel moneyPanel = new JPanel();
-        moneyPanel.setBackground(CARD_BG);
+        moneyPanel.setBackground(CARD_BG_LIGHT); // Fondo blanco
         moneyPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createLineBorder(BORDER_COLOR_LIGHT, 1), // Borde claro
                 BorderFactory.createEmptyBorder(12, 20, 12, 20)
         ));
 
         moneyLabel = new JLabel("$" + String.format("%.2f", economy.getMoney()));
         moneyLabel.setFont(MONEY_FONT);
-        moneyLabel.setForeground(SUCCESS_COLOR);
+        moneyLabel.setForeground(SUCCESS_COLOR); // Verde
         moneyPanel.add(moneyLabel);
 
-        topPanel.add(titlePanel, BorderLayout.WEST);
+        topPanel.add(titlePanel, BorderLayout.CENTER);
         topPanel.add(moneyPanel, BorderLayout.EAST);
 
         return topPanel;
@@ -105,9 +109,10 @@ public class StoreWindow extends JFrame {
     private JSplitPane createMainSplitPane() {
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         splitPane.setDividerLocation(450);
-        splitPane.setDividerSize(2);
-        splitPane.setBackground(BG_DARK);
-        splitPane.setBorder(BorderFactory.createEmptyBorder(0, 25, 25, 25));
+        splitPane.setDividerSize(10); // Divisor más notable
+        splitPane.setBackground(BG_LIGHT);
+        splitPane.setBorder(BorderFactory.createEmptyBorder(0, 20, 10, 20)); // Padding
+        splitPane.setOpaque(false);
 
         // Panel Tienda
         JPanel storePanel = createStorePanel();
@@ -120,14 +125,24 @@ public class StoreWindow extends JFrame {
         return splitPane;
     }
 
+    // Método helper para crear paneles de "tarjeta"
+    private JPanel createCardPanel() {
+        JPanel card = new JPanel(new BorderLayout(0, 15));
+        card.setBackground(CARD_BG_LIGHT);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR_LIGHT, 1),
+                BorderFactory.createEmptyBorder(20, 20, 20, 20) // Padding interno
+        ));
+        return card;
+    }
+
     private JPanel createStorePanel() {
-        JPanel storePanel = new JPanel(new BorderLayout(0, 15));
-        storePanel.setBackground(BG_DARK);
+        JPanel storePanel = createCardPanel(); // Usa el panel de tarjeta
 
         // Header
         JLabel storeHeader = new JLabel("🛒 Tienda de Minerales");
         storeHeader.setFont(SUBTITLE_FONT);
-        storeHeader.setForeground(TEXT_PRIMARY);
+        storeHeader.setForeground(TEXT_PRIMARY_LIGHT);
         storeHeader.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
 
         // Lista de minerales
@@ -143,7 +158,7 @@ public class StoreWindow extends JFrame {
         styleScrollPane(scrollPane);
 
         // Botón Comprar
-        JButton buyButton = createModernButton("🛒 Comprar Mineral", ACCENT_PRIMARY);
+        JButton buyButton = createModernButton("🛒 Comprar Mineral", ACCENT_PRIMARY, Color.WHITE);
         buyButton.addActionListener(e -> buyMineral());
 
         storePanel.add(storeHeader, BorderLayout.NORTH);
@@ -154,13 +169,12 @@ public class StoreWindow extends JFrame {
     }
 
     private JPanel createInventoryPanel() {
-        JPanel inventoryPanel = new JPanel(new BorderLayout(0, 15));
-        inventoryPanel.setBackground(BG_DARK);
+        JPanel inventoryPanel = createCardPanel(); // Usa el panel de tarjeta
 
         // Header
         JLabel inventoryHeader = new JLabel("📦 Tu Inventario");
         inventoryHeader.setFont(SUBTITLE_FONT);
-        inventoryHeader.setForeground(TEXT_PRIMARY);
+        inventoryHeader.setForeground(TEXT_PRIMARY_LIGHT);
         inventoryHeader.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
 
         // Lista de inventario
@@ -171,10 +185,10 @@ public class StoreWindow extends JFrame {
 
         // Panel de botones
         JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 15, 0));
-        buttonPanel.setBackground(BG_DARK);
+        buttonPanel.setBackground(CARD_BG_LIGHT); // Fondo blanco
 
-        JButton sellButton = createModernButton("💰 Vender", ACCENT_SECONDARY);
-        JButton refreshButton = createModernButton("🔄 Actualizar", SUCCESS_COLOR);
+        JButton sellButton = createModernButton("💰 Vender", ACCENT_SECONDARY, Color.WHITE);
+        JButton refreshButton = createModernButton("🔄 Actualizar", SUCCESS_COLOR, Color.WHITE);
 
         sellButton.addActionListener(e -> sellMineral());
         refreshButton.addActionListener(e -> refreshPrices());
@@ -189,15 +203,12 @@ public class StoreWindow extends JFrame {
         return inventoryPanel;
     }
 
-    private JButton createModernButton(String text, Color color) {
+    private JButton createModernButton(String text, Color color, Color textColor) {
         JButton button = new JButton(text);
         button.setFont(UI_FONT.deriveFont(Font.BOLD, 14f));
-        button.setForeground(Color.WHITE);
+        button.setForeground(textColor);
         button.setBackground(color);
-        button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(color.darker(), 1),
-                BorderFactory.createEmptyBorder(12, 20, 12, 20)
-        ));
+        button.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20)); // Borde simple
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -215,8 +226,8 @@ public class StoreWindow extends JFrame {
     }
 
     private void applyModernListStyle(JList<String> list, Color accentColor) {
-        list.setBackground(CARD_BG);
-        list.setForeground(TEXT_PRIMARY);
+        list.setBackground(CARD_BG_LIGHT); // Fondo blanco
+        list.setForeground(TEXT_PRIMARY_LIGHT); // Texto oscuro
         list.setFont(UI_FONT);
         list.setSelectionBackground(accentColor);
         list.setSelectionForeground(Color.WHITE);
@@ -228,28 +239,64 @@ public class StoreWindow extends JFrame {
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                           boolean isSelected, boolean cellHasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                // Resetea el borde
                 label.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
 
                 if (isSelected) {
+                    // Mantiene el fondo y texto de selección, pero añade el borde
                     label.setBorder(BorderFactory.createCompoundBorder(
                             BorderFactory.createMatteBorder(0, 4, 0, 0, accentColor),
                             BorderFactory.createEmptyBorder(8, 8, 8, 12)
                     ));
+                } else {
+                    // Asegura que los no seleccionados tengan el fondo correcto
+                    label.setBackground(CARD_BG_LIGHT);
+                    label.setForeground(TEXT_PRIMARY_LIGHT);
                 }
+
+                // Hace que el renderer no sea opaco para que se vea el fondo de la lista
+                // Pero en este caso, queremos que sea opaco para mostrar el fondo blanco
+                label.setOpaque(true);
+
                 return label;
             }
         });
     }
 
     private void styleScrollPane(JScrollPane scrollPane) {
-        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-        scrollPane.getViewport().setBackground(CARD_BG);
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR_LIGHT, 1));
+        scrollPane.getViewport().setBackground(CARD_BG_LIGHT);
         JScrollBar vertical = scrollPane.getVerticalScrollBar();
-        vertical.setBackground(CARD_BG);
-        vertical.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        vertical.setBackground(CARD_BG_LIGHT);
+        vertical.setBorder(null); // Más limpio
+
+        // --- Scrollbar más moderna (opcional pero recomendado) ---
+        // vertical.setUI(new BasicScrollBarUI() {
+        //     @Override
+        //     protected void configureScrollBarColors() {
+        //         this.thumbColor = ACCENT_SECONDARY;
+        //         this.trackColor = BG_LIGHT;
+        //     }
+        //     @Override
+        //     protected JButton createDecreaseButton(int orientation) {
+        //         return createZeroButton();
+        //     }
+        //     @Override
+        //     protected JButton createIncreaseButton(int orientation) {
+        //         return createZeroButton();
+        //     }
+        //     private JButton createZeroButton() {
+        //         JButton jbutton = new JButton();
+        //         jbutton.setPreferredSize(new Dimension(0, 0));
+        //         jbutton.setMinimumSize(new Dimension(0, 0));
+        //         jbutton.setMaximumSize(new Dimension(0, 0));
+        //         return jbutton;
+        //     }
+        // });
     }
 
     // --- MÉTODOS DE LÓGICA (sin cambios) ---
+
     private void startAutoRefresh() {
         refreshTimer = new javax.swing.Timer(5000, e -> refreshPrices());
         refreshTimer.start();
@@ -262,7 +309,8 @@ public class StoreWindow extends JFrame {
             return;
         }
         String mineralName = mineralNames.get(selectedIndex);
-        if (economy.buyPlant(mineralName)) {
+
+        if (economy.buyMineral(mineralName)) {
             inventory.put(mineralName, inventory.getOrDefault(mineralName, 0) + 1);
             updateMoneyDisplay();
             updateInventoryDisplay();
@@ -287,7 +335,7 @@ public class StoreWindow extends JFrame {
         String mineralName = selectedValue.split(" - ")[0].trim();
         if (inventory.getOrDefault(mineralName, 0) > 0) {
             double sellPrice = economy.getSellPrice(mineralName);
-            economy.sellPlant(mineralName);
+            economy.sellMineral(mineralName);
             inventory.put(mineralName, inventory.get(mineralName) - 1);
             updateMoneyDisplay();
             updateInventoryDisplay();
