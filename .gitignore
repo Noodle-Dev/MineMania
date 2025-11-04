@@ -1,9 +1,41 @@
+# ----------------------------------------
+# SEGURIDAD Y DATOS LOCALES (¡CRUCIAL!)
+# ----------------------------------------
+# Archivo que contiene la API Key de Groq.
+config.properties
+
+# Directorio donde se guardan los archivos .json de los estados de usuario.
+user_data/
+
+# Archivo que almacena los hashes de contraseña.
+users.json
+
+
+# ----------------------------------------
+# COMPILACIÓN Y ARTEFACTOS DE JAVA/MAVEN
+# ----------------------------------------
 target/
+# Módulos de la aplicación
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.log
+*.class
+
+# Archivos de Maven Wrapper (¡no ignorar el jar!)
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+
+# ----------------------------------------
+# CONFIGURACIÓN DE IDEs (Integrado tu lista)
+# ----------------------------------------
+
 ### IntelliJ IDEA ###
+.idea/
 .idea/modules.xml
 .idea/jarRepositories.xml
 .idea/compiler.xml
@@ -34,5 +66,6 @@ build/
 ### VS Code ###
 .vscode/
 
-### Mac OS ###
+### Sistema Operativo ###
 .DS_Store
+Thumbs.db

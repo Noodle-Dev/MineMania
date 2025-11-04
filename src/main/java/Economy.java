@@ -1,24 +1,28 @@
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Random;
 import javax.swing.Timer;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
 
 public class Economy {
     private static Economy instance;
-    private double money;
     private HashMap<String, Double> buyPrices;
     private HashMap<String, Double> sellPrices;
     private Random random;
     private Timer priceTimer;
-
     private List<String> mineralNames;
+    private static final Gson gson = new Gson();
 
     private Economy() {
-        this.money = 100.0;
         this.random = new Random();
         initializePrices();
         startPriceUpdates();
@@ -40,28 +44,19 @@ public class Economy {
         sellPrices = new HashMap<>();
         mineralNames = new ArrayList<>();
 
-        loadMineralData(); // Carga los precios iniciales
+        // 1. Intenta cargar los minerales de la IA
+        addMineralsFromAI(5);
 
-        // Calcula los precios de venta iniciales
+        // 2. Si la API falla, añade un mineral por defecto para evitar NullPointerException.
+        if (buyPrices.isEmpty()) {
+            buyPrices.put("DefaultOre", 50.0);
+            mineralNames.add("DefaultOre");
+        }
+
+        // 3. Inicializa los precios de venta
         for (String mineral : buyPrices.keySet()) {
             sellPrices.put(mineral, buyPrices.get(mineral) * 0.7);
         }
-    }
-
-    private void loadMineralData() {
-        // Lógica de carga de JSON eliminada por simplicidad,
-        // ya que no estaba implementada.
-        // Se usan precios predeterminados directamente.
-
-        buyPrices.put("💎 Diamante", 50.0);
-        buyPrices.put("⛏️ Carbón", 5.0);
-        buyPrices.put("🧪 Uranio", 150.0);
-        buyPrices.put("💰 Oro", 80.0);
-
-        mineralNames.add("💎 Diamante");
-        mineralNames.add("⛏️ Carbón");
-        mineralNames.add("🧪 Uranio");
-        mineralNames.add("💰 Oro");
     }
 
     private void startPriceUpdates() {
@@ -69,66 +64,196 @@ public class Economy {
         priceTimer.start();
     }
 
-    /**
-     * Compra un mineral, descontando el dinero.
-     * (Antes llamado buyPlant)
-     */
-    public boolean buyMineral(String mineralName) {
-        double price = buyPrices.get(mineralName);
-        if (money >= price) {
-            money -= price;
-            return true;
-        }
-        return false;
+    public void forcePriceUpdate() {
+        updatePrices();
     }
 
-    /**
-     * Vende un mineral, aumentando el dinero.
-     * (Antes llamado sellPlant)
-     */
+    public void buyMineral(String mineralName, int amount) {
+        double price = buyPrices.get(mineralName);
+    }
+
     public void sellMineral(String mineralName) {
         double price = sellPrices.get(mineralName);
-        money += price;
-    }
-
-    public double getMoney() {
-        return money;
     }
 
     public double getBuyPrice(String mineralName) {
-        return buyPrices.get(mineralName);
+        // Chequeo de seguridad
+        if (buyPrices.containsKey(mineralName)) {
+            return buyPrices.get(mineralName);
+        }
+        return 0.0;
     }
 
     public double getSellPrice(String mineralName) {
-        return sellPrices.get(mineralName);
+        // Chequeo de seguridad
+        if (sellPrices.containsKey(mineralName)) {
+            return sellPrices.get(mineralName);
+        }
+        return 0.0;
     }
 
     private void updatePrices() {
-        // Actualización regular de precios sin AI
         for (String mineral : new ArrayList<>(buyPrices.keySet())) {
             double currentBuyPrice = buyPrices.get(mineral);
-            // Fluctuación entre -20% y +20%
             double fluctuation = (random.nextDouble() * 0.4) - 0.2;
             double newBuyPrice = currentBuyPrice * (1 + fluctuation);
 
-            // Asegura que los precios se mantengan en un rango razonable
-            newBuyPrice = Math.max(5.0, Math.min(300.0, newBuyPrice));
+            newBuyPrice = Math.max(5.0, Math.min(5000.0, newBuyPrice));
 
-            // Redondea a 2 decimales
             buyPrices.put(mineral, Math.round(newBuyPrice * 100.0) / 100.0);
 
-            // Actualiza el precio de venta basado en el nuevo precio de compra
             double newSellPrice = newBuyPrice * 0.7;
             sellPrices.put(mineral, Math.round(newSellPrice * 100.0) / 100.0);
         }
     }
 
-    public void forcePriceUpdate() {
-        updatePrices();
+    public void reset() {
+        if (priceTimer != null) {
+            priceTimer.stop();
+        }
+        instance = null;
     }
 
-    public void reset() {
-        money = 100.0;
-        initializePrices();
+    public void addMineralsFromAI(int count) {
+        try {
+            List<MineralData> newMinerals = generateMineralsFromGroq(count);
+
+            if (!newMinerals.isEmpty()) {
+                for (MineralData mineral : newMinerals) {
+                    String name = mineral.getName().trim();
+                    double initialPrice = mineral.getPrice();
+
+                    initialPrice = Math.max(10.0, Math.min(5000.0, initialPrice));
+
+                    if (!mineralNames.contains(name)) {
+                        mineralNames.add(name);
+                        buyPrices.put(name, Math.round(initialPrice * 100.0) / 100.0);
+                        sellPrices.put(name, Math.round((initialPrice * 0.7) * 100.0) / 100.0);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error en Groq API: " + e.getMessage());
+        }
+    }
+
+    private List<MineralData> generateMineralsFromGroq(int numMinerals) throws Exception {
+        String API_KEY = ConfigLoader.getGroqApiKey();
+        String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+        String MODEL_NAME = "llama-3.1-8b-instant";
+
+        URL url = new URL(GROQ_URL);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty("Authorization", "Bearer " + API_KEY);
+        conn.setDoOutput(true);
+
+        String systemPrompt = "Eres una IA que genera nombres de minerales que inicien en rigo y sus precios iniciales de mercado no deben ser mayores que 100. Responde ÚNICAMENTE con un array JSON de objetos.";
+
+        // **PROMPT CORREGIDO:** Se pide a la IA que envuelva el array en un objeto raíz para evitar el error BEGIN_ARRAY/BEGIN_OBJECT
+        String userPrompt = "Genera " + numMinerals + " nuevos nombres de minerales para un juego de minería espacial, los minerales deben empezar en rigo, y asigna a cada uno un precio inicial aleatorio entre 10.0 y 1000.0. El formato JSON DEBE ser: {\"minerals\": [{\"name\": \"NombreMineral\", \"price\": 123.45}, {\"name\": \"OtroMineral\", \"price\": 45.67}, ...]}";
+
+        // Usar clases y Gson para serializar el JSON de ENTRADA
+        GroqRequest request = new GroqRequest();
+        request.model = MODEL_NAME;
+        request.temperature = 0.8;
+        request.response_format = new ResponseFormat("json_object");
+
+        List<RequestMessage> messages = new ArrayList<>();
+        messages.add(new RequestMessage("system", systemPrompt));
+        messages.add(new RequestMessage("user", userPrompt));
+        request.messages = messages;
+
+        String jsonInputString = gson.toJson(request);
+
+        try (OutputStream os = conn.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes("utf-8");
+            os.write(input, 0, input.length);
+        }
+
+        int responseCode = conn.getResponseCode();
+
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"))) {
+                StringBuilder response = new StringBuilder();
+                String responseLine;
+                while ((responseLine = br.readLine()) != null) {
+                    response.append(responseLine.trim());
+                }
+
+                GroqResponse groqResponse = gson.fromJson(response.toString(), GroqResponse.class);
+                String jsonContent = groqResponse.choices.get(0).message.content;
+
+                // **PARSING CORREGIDO:** Se parsea el contenido de la IA usando el wrapper
+                MineralListWrapper wrapper = gson.fromJson(jsonContent, MineralListWrapper.class);
+
+                if (wrapper != null && wrapper.minerals != null) {
+                    return wrapper.minerals;
+                } else {
+                    System.err.println("El modelo de Groq no devolvió el array 'minerals'. Contenido recibido: " + jsonContent);
+                    return new ArrayList<>();
+                }
+            }
+        } else {
+            System.err.println("Groq API error. Response code: " + responseCode);
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream(), "utf-8"))) {
+                br.lines().forEach(System.err::println);
+            }
+            // Devolver lista vacía en caso de error
+            return new ArrayList<>();
+        }
+    }
+
+    // --- Clases para la Respuesta de Groq (OUTPUT) ---
+    public static class MineralData {
+        private String name;
+        private double price;
+
+        public String getName() { return name; }
+        public double getPrice() { return price; }
+    }
+
+    // **NUEVA CLASE WRAPPER para parsear el JSON de salida**
+    private static class MineralListWrapper {
+        List<MineralData> minerals;
+    }
+
+    private static class GroqResponse {
+        List<Choice> choices;
+    }
+
+    private static class Choice {
+        Message message;
+    }
+
+    private static class Message {
+        String content;
+    }
+
+    // --- Clases para la Solicitud a Groq (INPUT) ---
+    private static class GroqRequest {
+        String model;
+        List<RequestMessage> messages;
+        double temperature;
+        ResponseFormat response_format;
+    }
+
+    private static class RequestMessage {
+        String role;
+        String content;
+
+        public RequestMessage(String role, String content) {
+            this.role = role;
+            this.content = content;
+        }
+    }
+
+    private static class ResponseFormat {
+        String type;
+
+        public ResponseFormat(String type) {
+            this.type = type;
+        }
     }
 }

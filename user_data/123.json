@@ -1,9 +1,20 @@
 {
-  "money": 94.91999999999999,
+  "money": 1129.1899999999998,
   "inventory": {
-    "⛏️ Carbón": 1,
-    "💎 Diamante": 0,
-    "🧪 Uranio": 0,
-    "💰 Oro": 0
+    "⛏️ Carbón": 0,
+    "Rigodinita": 0,
+    "Rigoborita": 0,
+    "Rigolita": 0,
+    "Rigomita": 0,
+    "Rigocrita": 0,
+    "Rigobaltio": 0,
+    "Rigodur": 0,
+    "Rigoflax": 0,
+    "Rigopex": 0,
+    "Rigorox": 0,
+    "Rigoxal": 0,
+    "Rigotin": 0,
+    "Rigobol": 0,
+    "Rigonal": 0
   }
 }
