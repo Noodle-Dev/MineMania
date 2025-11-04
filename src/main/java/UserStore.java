@@ -1,87 +1,95 @@
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.security.MessageDigest; // Para el hashing
-import java.security.NoSuchAlgorithmException; // Para el hashing
-import java.util.Base64; // Para codificar el hash
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
+
+// Imports de Gson
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken; // Para el tipo de Map
+import java.lang.reflect.Type;
 
 public class UserStore {
-    private static final String USER_FILE = "users.txt";
 
-    /**
-     * Hashea una contraseña usando SHA-256 y la codifica en Base64.
-     */
+    // 1. Cambiamos el nombre del archivo
+    private static final String USER_FILE = "users.json";
+    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+    // 2. Definimos el tipo de dato que Gson leerá: un Mapa de String a String
+    private static final Type USER_MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
+
     private static String hashPassword(String password) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hashedBytes = md.digest(password.getBytes());
-            // Convertir el hash de bytes a un String legible (Base64)
             return Base64.getEncoder().encodeToString(hashedBytes);
         } catch (NoSuchAlgorithmException e) {
-            // Esto no debería pasar si SHA-256 está disponible
             throw new RuntimeException("Error al hashear la contraseña", e);
         }
     }
 
-    /**
-     * Verifica el email y la contraseña contra el hash almacenado.
-     */
     public static boolean login(String email, String password) {
         Map<String, String> users = loadUsers();
         if (!users.containsKey(email)) {
-            return false; // El usuario no existe
+            return false;
         }
-
         String storedHash = users.get(email);
         String providedHash = hashPassword(password);
-
-        // Compara el hash de la contraseña introducida con el hash guardado
         return storedHash.equals(providedHash);
     }
 
-    /**
-     * Registra un nuevo usuario guardando el hash de su contraseña.
-     */
     public static boolean register(String email, String password) {
         Map<String, String> users = loadUsers();
         if (users.containsKey(email)) {
-            return false; // El email ya está en uso
+            return false;
         }
 
         String passwordHash = hashPassword(password);
 
-        try (PrintWriter pw = new PrintWriter(new FileWriter(USER_FILE, true))) {
-            // Guarda el email y el HASH
-            pw.println(email + ":" + passwordHash);
+        // 3. Añade el nuevo usuario al Map
+        users.put(email, passwordHash);
+
+        // 4. Guarda el Map actualizado en el archivo JSON
+        return saveUsers(users);
+    }
+
+    /**
+     * MÉTODO ACTUALIZADO
+     * Lee el archivo users.json y lo convierte en un Map.
+     */
+    private static Map<String, String> loadUsers() {
+        File file = new File(USER_FILE);
+        if (!file.exists()) {
+            return new HashMap<>();
+        }
+
+        try (Reader reader = new FileReader(file)) {
+            // Lee el JSON y conviértelo directamente a un Map
+            Map<String, String> users = gson.fromJson(reader, USER_MAP_TYPE);
+            if (users == null) {
+                return new HashMap<>();
+            }
+            return users;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new HashMap<>();
+        }
+    }
+
+    /**
+     * NUEVO MÉTODO
+     * Guarda el Map de usuarios completo en el archivo JSON.
+     * Sobrescribe el archivo cada vez.
+     */
+    private static boolean saveUsers(Map<String, String> users) {
+        try (Writer writer = new FileWriter(USER_FILE)) {
+            gson.toJson(users, writer);
             return true;
         } catch (IOException e) {
             e.printStackTrace();
             return false;
         }
-    }
-
-    /**
-     * Carga los usuarios (email y hash) desde el archivo.
-     */
-    private static Map<String, String> loadUsers() {
-        Map<String, String> users = new HashMap<>();
-        File file = new File(USER_FILE);
-        if (!file.exists()) {
-            return users;
-        }
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.split(":", 2);
-                if (parts.length == 2) {
-                    // parts[0] = email, parts[1] = passwordHash
-                    users.put(parts[0], parts[1]);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return users;
     }
 }

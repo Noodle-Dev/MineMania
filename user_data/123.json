@@ -1,4 +1,9 @@
 {
-  "money": 100.0,
-  "inventory": {}
+  "money": 94.91999999999999,
+  "inventory": {
+    "⛏️ Carbón": 1,
+    "💎 Diamante": 0,
+    "🧪 Uranio": 0,
+    "💰 Oro": 0
+  }
 }

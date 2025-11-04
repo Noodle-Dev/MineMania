@@ -21,7 +21,7 @@ public class LoginWindow extends JFrame {
 
     public LoginWindow() {
         setTitle("Mina Virtual - Login");
-        setSize(500, 420);
+        setSize(400, 450);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         getContentPane().setBackground(BG_LIGHT);
