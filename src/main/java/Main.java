@@ -10,11 +10,3 @@ public class Main {
     }
 }
 
-
-
-/*
-* API KEY
-*
-* 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
-*
-* */
