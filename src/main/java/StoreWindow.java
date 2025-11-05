@@ -146,7 +146,7 @@ public class StoreWindow extends JFrame {
         JScrollPane scrollPane = new JScrollPane(mineralList);
         styleScrollPane(scrollPane);
 
-        JButton buyButton = createModernButton("🛒 Comprar Mineral", ACCENT_PRIMARY, Color.WHITE);
+        JButton buyButton = createModernButton("📊 Analizar y Comprar", ACCENT_PRIMARY, Color.WHITE);
         buyButton.addActionListener(e -> buyMineral());
 
         storePanel.add(storeHeader, BorderLayout.NORTH);
@@ -265,6 +265,32 @@ public class StoreWindow extends JFrame {
         String mineralName = mineralNames.get(selectedIndex);
         double price = economy.getBuyPrice(mineralName);
 
+        try {
+            // Obtener historial de precios
+            List<PriceHistory.PricePoint> priceHistory = economy.getPriceHistory(mineralName);
+
+            // Mostrar gráfico de velas antes de comprar
+            CandlestickChart.showChart(mineralName, priceHistory, price, () -> {
+                // Este callback se ejecuta cuando el usuario hace clic en "Comprar"
+                executePurchase(mineralName, price);
+            });
+        } catch (Exception e) {
+            System.err.println("Error mostrando gráfico: " + e.getMessage());
+            // Fallback: compra directa sin gráfico
+            int response = JOptionPane.showConfirmDialog(this,
+                    "Error al cargar el gráfico. ¿Deseas comprar " + mineralName + " por $" +
+                            String.format("%.2f", price) + "?",
+                    "Confirmar Compra",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (response == JOptionPane.YES_OPTION) {
+                executePurchase(mineralName, price);
+            }
+        }
+    }
+
+    // NUEVO: Método separado para ejecutar la compra
+    private void executePurchase(String mineralName, double price) {
         if (userState.getMoney() >= price) {
             userState.setMoney(userState.getMoney() - price);
             userState.addToInventory(mineralName, 1);
@@ -274,7 +300,6 @@ public class StoreWindow extends JFrame {
             updateMoneyDisplay();
             updateInventoryDisplay();
             showMessage("¡Compraste " + mineralName + "!", "Éxito");
-
         } else {
             showMessage("¡No tienes suficiente dinero!", "Error");
         }

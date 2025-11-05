@@ -20,10 +20,12 @@ public class Economy {
     private Random random;
     private Timer priceTimer;
     private List<String> mineralNames;
+    private PriceHistory priceHistory; // NUEVO: Historial de precios
     private static final Gson gson = new Gson();
 
     private Economy() {
         this.random = new Random();
+        this.priceHistory = new PriceHistory(); // NUEVO
         initializePrices();
         startPriceUpdates();
     }
@@ -49,8 +51,7 @@ public class Economy {
 
         // 2. Si la API falla, añade un mineral por defecto para evitar NullPointerException.
         if (buyPrices.isEmpty()) {
-            buyPrices.put("DefaultOre", 50.0);
-            mineralNames.add("DefaultOre");
+            addDefaultMineralWithHistory();
         }
 
         // 3. Inicializa los precios de venta
@@ -93,6 +94,8 @@ public class Economy {
     }
 
     private void updatePrices() {
+        long currentTime = System.currentTimeMillis(); // NUEVO
+
         for (String mineral : new ArrayList<>(buyPrices.keySet())) {
             double currentBuyPrice = buyPrices.get(mineral);
             double fluctuation = (random.nextDouble() * 0.4) - 0.2;
@@ -104,6 +107,9 @@ public class Economy {
 
             double newSellPrice = newBuyPrice * 0.7;
             sellPrices.put(mineral, Math.round(newSellPrice * 100.0) / 100.0);
+
+            // NUEVO: Registrar en el historial
+            priceHistory.addPricePoint(mineral, newBuyPrice, currentTime);
         }
     }
 
@@ -117,6 +123,7 @@ public class Economy {
     public void addMineralsFromAI(int count) {
         try {
             List<MineralData> newMinerals = generateMineralsFromGroq(count);
+            long currentTime = System.currentTimeMillis(); // NUEVO
 
             if (!newMinerals.isEmpty()) {
                 for (MineralData mineral : newMinerals) {
@@ -129,12 +136,54 @@ public class Economy {
                         mineralNames.add(name);
                         buyPrices.put(name, Math.round(initialPrice * 100.0) / 100.0);
                         sellPrices.put(name, Math.round((initialPrice * 0.7) * 100.0) / 100.0);
+
+                        // NUEVO: Generar datos históricos iniciales
+                        generateInitialPriceHistory(name, initialPrice, currentTime);
                     }
                 }
             }
         } catch (Exception e) {
             System.err.println("Error en Groq API: " + e.getMessage());
+            // Añadir mineral por defecto con datos históricos
+            addDefaultMineralWithHistory();
         }
+    }
+
+    // NUEVO: Método para generar datos históricos iniciales
+    private void generateInitialPriceHistory(String mineralName, double initialPrice, long baseTime) {
+        Random rand = new Random();
+
+        // Generar 15 puntos de datos históricos simulados
+        for (int i = 0; i < 15; i++) {
+            long timestamp = baseTime - (15 - i) * 3000; // 3 segundos entre puntos
+            double fluctuation = (rand.nextDouble() * 0.3) - 0.15; // ±15%
+            double historicalPrice = initialPrice * (1 + fluctuation);
+            historicalPrice = Math.max(initialPrice * 0.5, Math.min(initialPrice * 1.5, historicalPrice));
+
+            priceHistory.addPricePoint(mineralName, historicalPrice, timestamp);
+        }
+
+        // Añadir el precio actual
+        priceHistory.addPricePoint(mineralName, initialPrice, baseTime);
+    }
+
+    // NUEVO: Método para añadir mineral por defecto con historial
+    private void addDefaultMineralWithHistory() {
+        String defaultMineral = "DefaultOre";
+        double defaultPrice = 50.0;
+        long currentTime = System.currentTimeMillis();
+
+        if (!mineralNames.contains(defaultMineral)) {
+            mineralNames.add(defaultMineral);
+            buyPrices.put(defaultMineral, defaultPrice);
+            sellPrices.put(defaultMineral, defaultPrice * 0.7);
+            generateInitialPriceHistory(defaultMineral, defaultPrice, currentTime);
+        }
+    }
+
+    // NUEVO: Método para obtener el historial de precios
+    public List<PriceHistory.PricePoint> getPriceHistory(String mineralName) {
+        return priceHistory.getPriceHistory(mineralName);
     }
 
     private List<MineralData> generateMineralsFromGroq(int numMinerals) throws Exception {
