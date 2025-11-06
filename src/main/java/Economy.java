@@ -20,12 +20,12 @@ public class Economy {
     private Random random;
     private Timer priceTimer;
     private List<String> mineralNames;
-    private PriceHistory priceHistory; // NUEVO: Historial de precios
+    private PriceHistory priceHistory;
     private static final Gson gson = new Gson();
 
     private Economy() {
         this.random = new Random();
-        this.priceHistory = new PriceHistory(); // NUEVO
+        this.priceHistory = new PriceHistory();
         initializePrices();
         startPriceUpdates();
     }
@@ -46,15 +46,12 @@ public class Economy {
         sellPrices = new HashMap<>();
         mineralNames = new ArrayList<>();
 
-        // 1. Intenta cargar los minerales de la IA
         addMineralsFromAI(5);
 
-        // 2. Si la API falla, añade un mineral por defecto para evitar NullPointerException.
         if (buyPrices.isEmpty()) {
             addDefaultMineralWithHistory();
         }
 
-        // 3. Inicializa los precios de venta
         for (String mineral : buyPrices.keySet()) {
             sellPrices.put(mineral, buyPrices.get(mineral) * 0.7);
         }
@@ -78,7 +75,6 @@ public class Economy {
     }
 
     public double getBuyPrice(String mineralName) {
-        // Chequeo de seguridad
         if (buyPrices.containsKey(mineralName)) {
             return buyPrices.get(mineralName);
         }
@@ -86,7 +82,6 @@ public class Economy {
     }
 
     public double getSellPrice(String mineralName) {
-        // Chequeo de seguridad
         if (sellPrices.containsKey(mineralName)) {
             return sellPrices.get(mineralName);
         }
@@ -94,7 +89,7 @@ public class Economy {
     }
 
     private void updatePrices() {
-        long currentTime = System.currentTimeMillis(); // NUEVO
+        long currentTime = System.currentTimeMillis();
 
         for (String mineral : new ArrayList<>(buyPrices.keySet())) {
             double currentBuyPrice = buyPrices.get(mineral);
@@ -108,7 +103,6 @@ public class Economy {
             double newSellPrice = newBuyPrice * 0.7;
             sellPrices.put(mineral, Math.round(newSellPrice * 100.0) / 100.0);
 
-            // NUEVO: Registrar en el historial
             priceHistory.addPricePoint(mineral, newBuyPrice, currentTime);
         }
     }
@@ -123,7 +117,7 @@ public class Economy {
     public void addMineralsFromAI(int count) {
         try {
             List<MineralData> newMinerals = generateMineralsFromGroq(count);
-            long currentTime = System.currentTimeMillis(); // NUEVO
+            long currentTime = System.currentTimeMillis();
 
             if (!newMinerals.isEmpty()) {
                 for (MineralData mineral : newMinerals) {
@@ -137,37 +131,31 @@ public class Economy {
                         buyPrices.put(name, Math.round(initialPrice * 100.0) / 100.0);
                         sellPrices.put(name, Math.round((initialPrice * 0.7) * 100.0) / 100.0);
 
-                        // NUEVO: Generar datos históricos iniciales
                         generateInitialPriceHistory(name, initialPrice, currentTime);
                     }
                 }
             }
         } catch (Exception e) {
             System.err.println("Error en Groq API: " + e.getMessage());
-            // Añadir mineral por defecto con datos históricos
             addDefaultMineralWithHistory();
         }
     }
 
-    // NUEVO: Método para generar datos históricos iniciales
     private void generateInitialPriceHistory(String mineralName, double initialPrice, long baseTime) {
         Random rand = new Random();
 
-        // Generar 15 puntos de datos históricos simulados
         for (int i = 0; i < 15; i++) {
-            long timestamp = baseTime - (15 - i) * 3000; // 3 segundos entre puntos
-            double fluctuation = (rand.nextDouble() * 0.3) - 0.15; // ±15%
+            long timestamp = baseTime - (15 - i) * 3000;
+            double fluctuation = (rand.nextDouble() * 0.3) - 0.15;
             double historicalPrice = initialPrice * (1 + fluctuation);
             historicalPrice = Math.max(initialPrice * 0.5, Math.min(initialPrice * 1.5, historicalPrice));
 
             priceHistory.addPricePoint(mineralName, historicalPrice, timestamp);
         }
 
-        // Añadir el precio actual
         priceHistory.addPricePoint(mineralName, initialPrice, baseTime);
     }
 
-    // NUEVO: Método para añadir mineral por defecto con historial
     private void addDefaultMineralWithHistory() {
         String defaultMineral = "DefaultOre";
         double defaultPrice = 50.0;
@@ -181,7 +169,6 @@ public class Economy {
         }
     }
 
-    // NUEVO: Método para obtener el historial de precios
     public List<PriceHistory.PricePoint> getPriceHistory(String mineralName) {
         return priceHistory.getPriceHistory(mineralName);
     }
@@ -200,10 +187,8 @@ public class Economy {
 
         String systemPrompt = "Eres una IA que genera nombres de minerales que inicien en rigo y sus precios iniciales de mercado no deben ser mayores que 100. Responde ÚNICAMENTE con un array JSON de objetos.";
 
-        // **PROMPT CORREGIDO:** Se pide a la IA que envuelva el array en un objeto raíz para evitar el error BEGIN_ARRAY/BEGIN_OBJECT
         String userPrompt = "Genera " + numMinerals + " nuevos nombres de minerales para un juego de minería espacial, los minerales deben empezar en rigo, y asigna a cada uno un precio inicial aleatorio entre 10.0 y 1000.0. El formato JSON DEBE ser: {\"minerals\": [{\"name\": \"NombreMineral\", \"price\": 123.45}, {\"name\": \"OtroMineral\", \"price\": 45.67}, ...]}";
 
-        // Usar clases y Gson para serializar el JSON de ENTRADA
         GroqRequest request = new GroqRequest();
         request.model = MODEL_NAME;
         request.temperature = 0.8;
@@ -234,7 +219,6 @@ public class Economy {
                 GroqResponse groqResponse = gson.fromJson(response.toString(), GroqResponse.class);
                 String jsonContent = groqResponse.choices.get(0).message.content;
 
-                // **PARSING CORREGIDO:** Se parsea el contenido de la IA usando el wrapper
                 MineralListWrapper wrapper = gson.fromJson(jsonContent, MineralListWrapper.class);
 
                 if (wrapper != null && wrapper.minerals != null) {
@@ -249,12 +233,10 @@ public class Economy {
             try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream(), "utf-8"))) {
                 br.lines().forEach(System.err::println);
             }
-            // Devolver lista vacía en caso de error
             return new ArrayList<>();
         }
     }
 
-    // --- Clases para la Respuesta de Groq (OUTPUT) ---
     public static class MineralData {
         private String name;
         private double price;
@@ -263,7 +245,6 @@ public class Economy {
         public double getPrice() { return price; }
     }
 
-    // **NUEVA CLASE WRAPPER para parsear el JSON de salida**
     private static class MineralListWrapper {
         List<MineralData> minerals;
     }
@@ -280,7 +261,6 @@ public class Economy {
         String content;
     }
 
-    // --- Clases para la Solicitud a Groq (INPUT) ---
     private static class GroqRequest {
         String model;
         List<RequestMessage> messages;

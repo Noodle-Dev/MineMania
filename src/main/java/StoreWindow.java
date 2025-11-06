@@ -266,17 +266,13 @@ public class StoreWindow extends JFrame {
         double price = economy.getBuyPrice(mineralName);
 
         try {
-            // Obtener historial de precios
             List<PriceHistory.PricePoint> priceHistory = economy.getPriceHistory(mineralName);
 
-            // Mostrar gráfico de velas antes de comprar
             CandlestickChart.showChart(mineralName, priceHistory, price, () -> {
-                // Este callback se ejecuta cuando el usuario hace clic en "Comprar"
                 executePurchase(mineralName, price);
             });
         } catch (Exception e) {
             System.err.println("Error mostrando gráfico: " + e.getMessage());
-            // Fallback: compra directa sin gráfico
             int response = JOptionPane.showConfirmDialog(this,
                     "Error al cargar el gráfico. ¿Deseas comprar " + mineralName + " por $" +
                             String.format("%.2f", price) + "?",
@@ -289,7 +285,6 @@ public class StoreWindow extends JFrame {
         }
     }
 
-    // NUEVO: Método separado para ejecutar la compra
     private void executePurchase(String mineralName, double price) {
         if (userState.getMoney() >= price) {
             userState.setMoney(userState.getMoney() - price);

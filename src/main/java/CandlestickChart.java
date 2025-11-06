@@ -22,29 +22,24 @@ public class CandlestickChart {
         currentOnBuyCallback = onBuyCallback;
 
         if (priceHistory.isEmpty() || priceHistory.size() < 2) {
-            // Si no hay historial suficiente, mostrar un gráfico de línea simple con datos simulados
             showSimpleLineChart(mineralName, currentPrice, priceHistory, onBuyCallback);
             return;
         }
 
-        // Crear datos para el gráfico de velas
         List<Double> timeData = new ArrayList<>();
         List<Double> openData = new ArrayList<>();
         List<Double> highData = new ArrayList<>();
         List<Double> lowData = new ArrayList<>();
         List<Double> closeData = new ArrayList<>();
 
-        // Procesar el historial para crear velas
         createCandleData(priceHistory, timeData, openData, highData, lowData, closeData);
 
-        // Verificar que tenemos datos válidos
         if (openData.isEmpty() || timeData.isEmpty()) {
             showSimpleLineChart(mineralName, currentPrice, priceHistory, onBuyCallback);
             return;
         }
 
         try {
-            // Crear el gráfico
             OHLCChart chart = new OHLCChartBuilder()
                     .width(800)
                     .height(500)
@@ -53,11 +48,9 @@ public class CandlestickChart {
                     .yAxisTitle("Precio ($)")
                     .build();
 
-            // Personalizar el gráfico
             chart.getStyler().setLegendPosition(Styler.LegendPosition.OutsideS);
             chart.getStyler().setDefaultSeriesRenderStyle(OHLCSeries.OHLCSeriesRenderStyle.Candle);
 
-            // Añadir la serie de velas
             OHLCSeries series = chart.addSeries(mineralName, timeData, openData, highData, lowData, closeData);
             series.setUpColor(Color.GREEN);
             series.setDownColor(Color.RED);
@@ -66,14 +59,12 @@ public class CandlestickChart {
 
         } catch (Exception e) {
             System.err.println("Error creando gráfico de velas: " + e.getMessage());
-            // Fallback a gráfico simple
             showSimpleLineChart(mineralName, currentPrice, priceHistory, onBuyCallback);
         }
     }
 
     private static void showSimpleLineChart(String mineralName, double currentPrice,
                                             List<PriceHistory.PricePoint> priceHistory, Runnable onBuyCallback) {
-        // Crear un gráfico de línea simple cuando no hay suficiente historial
         XYChart chart = new XYChartBuilder()
                 .width(800)
                 .height(500)
@@ -82,15 +73,12 @@ public class CandlestickChart {
                 .yAxisTitle("Precio ($)")
                 .build();
 
-        // Usar datos reales si están disponibles, de lo contrario simular
         List<Double> xData = new ArrayList<>();
         List<Double> yData = new ArrayList<>();
 
         if (priceHistory.isEmpty()) {
-            // Datos simulados
             createSimulatedData(currentPrice, xData, yData);
         } else {
-            // Usar datos reales del historial
             for (int i = 0; i < priceHistory.size(); i++) {
                 xData.add((double) i);
                 yData.add(priceHistory.get(i).getPrice());
@@ -101,7 +89,6 @@ public class CandlestickChart {
         series.setMarker(SeriesMarkers.NONE);
         series.setLineColor(Color.BLUE);
 
-        // Añadir línea del precio actual
         if (!xData.isEmpty()) {
             XYSeries currentPriceSeries = chart.addSeries("Precio Actual",
                     new double[]{xData.get(0), xData.get(xData.size()-1)},
@@ -146,10 +133,8 @@ public class CandlestickChart {
     private static void showChartDialogWithChart(String mineralName, double currentPrice,
                                                  Object chart, Runnable onBuyCallback,
                                                  List<PriceHistory.PricePoint> priceHistory) {
-        // Detener timer anterior si existe
         stopTimer();
 
-        // Crear el panel del gráfico
         JPanel chartPanel;
         if (chart instanceof OHLCChart) {
             chartPanel = new XChartPanel<>((OHLCChart) chart);
@@ -164,7 +149,6 @@ public class CandlestickChart {
 
         currentChartPanel = chartPanel;
 
-        // Crear botones
         JButton buyButton = new JButton("🛒 Comprar a $" + String.format("%.2f", currentPrice));
         JButton cancelButton = new JButton("❌ Cancelar");
         JButton refreshButton = new JButton("🔄 Actualizar Gráfico");
@@ -181,18 +165,15 @@ public class CandlestickChart {
         refreshButton.setForeground(Color.WHITE);
         refreshButton.setFont(new Font("Inter", Font.BOLD, 14));
 
-        // Panel de botones
         JPanel buttonPanel = new JPanel(new FlowLayout());
         buttonPanel.add(buyButton);
         buttonPanel.add(refreshButton);
         buttonPanel.add(cancelButton);
 
-        // Panel principal
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.add(chartPanel, BorderLayout.CENTER);
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-        // Crear el diálogo
         JDialog dialog = new JDialog();
         dialog.setTitle("Análisis de Trading - " + mineralName + " (Actualizado: " + java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")) + ")");
         dialog.setModal(false);
@@ -203,10 +184,8 @@ public class CandlestickChart {
 
         currentDialog = dialog;
 
-        // Configurar timer para actualización automática
         setupAutoUpdate(mineralName, dialog, mainPanel, buyButton);
 
-        // Configurar acciones de los botones
         buyButton.addActionListener(e -> {
             stopTimer();
             onBuyCallback.run();
@@ -222,7 +201,6 @@ public class CandlestickChart {
             dialog.dispose();
         });
 
-        // Detener timer cuando se cierre la ventana
         dialog.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
@@ -244,23 +222,18 @@ public class CandlestickChart {
         try {
             System.out.println("Actualizando gráfico para: " + mineralName);
 
-            // Obtener datos actualizados
             Economy economy = Economy.getInstance();
             double currentPrice = economy.getBuyPrice(mineralName);
             List<PriceHistory.PricePoint> currentHistory = economy.getPriceHistory(mineralName);
 
             System.out.println("Precio actual: " + currentPrice + ", Historial: " + currentHistory.size() + " puntos");
 
-            // Actualizar botón de compra
             buyButton.setText("🛒 Comprar a $" + String.format("%.2f", currentPrice));
 
-            // Actualizar título
             dialog.setTitle("Análisis de Trading - " + mineralName + " (Actualizado: " + java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")) + ")");
 
-            // Crear nuevo gráfico
             Object newChart = createUpdatedChart(mineralName, currentPrice, currentHistory);
             if (newChart != null) {
-                // Crear nuevo panel de gráfico
                 JPanel newChartPanel;
                 if (newChart instanceof OHLCChart) {
                     newChartPanel = new XChartPanel<>((OHLCChart) newChart);
@@ -268,15 +241,13 @@ public class CandlestickChart {
                     newChartPanel = new XChartPanel<>((XYChart) newChart);
                 }
 
-                // Reemplazar el panel del gráfico en el mainPanel
                 mainPanel.remove(currentChartPanel);
                 mainPanel.add(newChartPanel, BorderLayout.CENTER);
                 currentChartPanel = newChartPanel;
 
-                // Forzar actualización de la UI
                 mainPanel.revalidate();
                 mainPanel.repaint();
-                dialog.pack(); // Ajustar tamaño si es necesario
+                dialog.pack();
 
                 System.out.println("Gráfico actualizado exitosamente");
             }
@@ -290,9 +261,8 @@ public class CandlestickChart {
     private static Object createUpdatedChart(String mineralName, double currentPrice, List<PriceHistory.PricePoint> priceHistory) {
         System.out.println("Creando gráfico actualizado con " + priceHistory.size() + " puntos de datos");
 
-        if (priceHistory.size() >= 3) { // Reducido el mínimo para velas
+        if (priceHistory.size() >= 3) {
             try {
-                // Crear datos para el gráfico de velas
                 List<Double> timeData = new ArrayList<>();
                 List<Double> openData = new ArrayList<>();
                 List<Double> highData = new ArrayList<>();
@@ -324,7 +294,6 @@ public class CandlestickChart {
             }
         }
 
-        // Gráfico de línea como fallback
         System.out.println("Usando gráfico de línea como fallback");
         XYChart chart = new XYChartBuilder()
                 .width(800)
@@ -346,7 +315,6 @@ public class CandlestickChart {
         series.setMarker(SeriesMarkers.NONE);
         series.setLineColor(Color.BLUE);
 
-        // Añadir línea del precio actual
         if (!xData.isEmpty()) {
             XYSeries currentPriceSeries = chart.addSeries("Precio Actual",
                     new double[]{xData.get(0), xData.get(xData.size()-1)},
@@ -384,7 +352,6 @@ public class CandlestickChart {
             return;
         }
 
-        // Para gráficos dinámicos, usar menos puntos por vela para más detalle
         int pointsPerCandle = Math.max(1, (int) Math.ceil(priceHistory.size() / 5.0));
 
         for (int i = 0; i < priceHistory.size(); i += pointsPerCandle) {

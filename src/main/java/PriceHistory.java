@@ -12,7 +12,6 @@ public class PriceHistory {
         List<PricePoint> mineralHistory = history.get(mineralName);
         mineralHistory.add(new PricePoint(price, timestamp));
 
-        // Mantener solo los últimos 30 puntos para el gráfico (más manejable)
         if (mineralHistory.size() > 30) {
             mineralHistory.remove(0);
         }
@@ -21,9 +20,7 @@ public class PriceHistory {
     public List<PricePoint> getPriceHistory(String mineralName) {
         List<PricePoint> historyList = history.getOrDefault(mineralName, new ArrayList<>());
 
-        // Si no hay historial, crear uno mínimo
         if (historyList.isEmpty()) {
-            // Crear un punto de datos básico para evitar errores
             historyList.add(new PricePoint(50.0, System.currentTimeMillis()));
             history.put(mineralName, historyList);
         }
