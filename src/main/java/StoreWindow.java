@@ -7,6 +7,11 @@ import java.util.Map;
 import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
 
+// NUEVOS IMPORTS para XChart
+import org.knowm.xchart.*;
+import org.knowm.xchart.style.Styler;
+import org.knowm.xchart.style.markers.SeriesMarkers;
+
 public class StoreWindow extends JFrame {
     private Economy economy;
     private UserState userState;
@@ -16,6 +21,11 @@ public class StoreWindow extends JFrame {
     private JList<String> inventoryList;
     private javax.swing.Timer refreshTimer;
     private List<String> mineralNames;
+
+    // NUEVO: Componentes para el gráfico
+    private JPanel chartPanel;
+    private JLabel chartTitle;
+    private String currentAnalyzedMineral;
 
     private static final Color BG_LIGHT = new Color(248, 249, 250);
     private static final Color CARD_BG_LIGHT = new Color(255, 255, 255);
@@ -31,7 +41,6 @@ public class StoreWindow extends JFrame {
     private static final Font UI_FONT = new Font("Inter", Font.PLAIN, 14);
     private static final Font MONEY_FONT = new Font("Inter", Font.BOLD, 18);
 
-
     public StoreWindow(UserState userState) {
         this.userState = userState;
         this.economy = Economy.getInstance();
@@ -46,7 +55,7 @@ public class StoreWindow extends JFrame {
 
     private void setupUI(String userEmail) {
         setTitle("Mina Virtual - " + userEmail);
-        setSize(900, 650);
+        setSize(1200, 800); // NUEVO: Ventana más grande para acomodar el gráfico
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         getContentPane().setBackground(BG_LIGHT);
@@ -101,20 +110,68 @@ public class StoreWindow extends JFrame {
     }
 
     private JSplitPane createMainSplitPane() {
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(450);
-        splitPane.setDividerSize(10);
-        splitPane.setBackground(BG_LIGHT);
-        splitPane.setBorder(BorderFactory.createEmptyBorder(0, 20, 10, 20));
-        splitPane.setOpaque(false);
+        JSplitPane mainSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT); // NUEVO: Cambiado a división vertical
+        mainSplitPane.setDividerLocation(400); // NUEVO: Ajustar la división
+        mainSplitPane.setDividerSize(10);
+        mainSplitPane.setBackground(BG_LIGHT);
+        mainSplitPane.setBorder(BorderFactory.createEmptyBorder(0, 20, 10, 20));
+        mainSplitPane.setOpaque(false);
+
+        // Panel superior: Tienda e Inventario
+        JSplitPane topSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        topSplitPane.setDividerLocation(450);
+        topSplitPane.setDividerSize(5);
 
         JPanel storePanel = createStorePanel();
-        splitPane.setLeftComponent(storePanel);
-
         JPanel inventoryPanel = createInventoryPanel();
-        splitPane.setRightComponent(inventoryPanel);
 
-        return splitPane;
+        topSplitPane.setLeftComponent(storePanel);
+        topSplitPane.setRightComponent(inventoryPanel);
+
+        // Panel inferior: Gráfico (NUEVO)
+        JPanel chartContainer = createChartPanel();
+
+        mainSplitPane.setTopComponent(topSplitPane);
+        mainSplitPane.setBottomComponent(chartContainer);
+
+        return mainSplitPane;
+    }
+
+    private JPanel createChartPanel() {
+        JPanel chartContainer = createCardPanel();
+        chartContainer.setLayout(new BorderLayout(0, 10));
+
+        // Título del gráfico
+        chartTitle = new JLabel("📊 Gráfico de Análisis - Selecciona un mineral para analizar");
+        chartTitle.setFont(SUBTITLE_FONT);
+        chartTitle.setForeground(TEXT_PRIMARY_LIGHT);
+        chartTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+
+        // Panel para el gráfico (inicialmente vacío)
+        chartPanel = new JPanel(new BorderLayout());
+        chartPanel.setBackground(CARD_BG_LIGHT);
+        chartPanel.setBorder(BorderFactory.createLineBorder(BORDER_COLOR_LIGHT, 1));
+        chartPanel.setPreferredSize(new Dimension(800, 300));
+
+        // Mensaje inicial
+        JLabel initialMessage = new JLabel("Haz clic en 'Analizar y Comprar' para ver el gráfico", JLabel.CENTER);
+        initialMessage.setFont(UI_FONT);
+        initialMessage.setForeground(TEXT_SECONDARY_LIGHT);
+        chartPanel.add(initialMessage, BorderLayout.CENTER);
+
+        // Botón para actualizar gráfico
+        JButton refreshChartButton = createModernButton("🔄 Actualizar Gráfico", ACCENT_SECONDARY, Color.WHITE);
+        refreshChartButton.addActionListener(e -> refreshCurrentChart());
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.setBackground(CARD_BG_LIGHT);
+        buttonPanel.add(refreshChartButton);
+
+        chartContainer.add(chartTitle, BorderLayout.NORTH);
+        chartContainer.add(chartPanel, BorderLayout.CENTER);
+        chartContainer.add(buttonPanel, BorderLayout.SOUTH);
+
+        return chartContainer;
     }
 
     private JPanel createCardPanel() {
@@ -269,11 +326,9 @@ public class StoreWindow extends JFrame {
             // Obtener historial de precios
             List<PriceHistory.PricePoint> priceHistory = economy.getPriceHistory(mineralName);
 
-            // Mostrar gráfico de velas antes de comprar
-            CandlestickChart.showChart(mineralName, priceHistory, price, () -> {
-                // Este callback se ejecuta cuando el usuario hace clic en "Comprar"
-                executePurchase(mineralName, price);
-            });
+            // Mostrar gráfico integrado en lugar de ventana separada
+            showIntegratedChart(mineralName, priceHistory, price);
+
         } catch (Exception e) {
             System.err.println("Error mostrando gráfico: " + e.getMessage());
             // Fallback: compra directa sin gráfico
@@ -289,7 +344,182 @@ public class StoreWindow extends JFrame {
         }
     }
 
-    // NUEVO: Método separado para ejecutar la compra
+    // NUEVO: Método para mostrar gráfico integrado
+    private void showIntegratedChart(String mineralName, List<PriceHistory.PricePoint> priceHistory, double currentPrice) {
+        currentAnalyzedMineral = mineralName;
+
+        // Actualizar título del gráfico
+        chartTitle.setText("📊 Análisis - " + mineralName + " (Precio: $" + String.format("%.2f", currentPrice) + ")");
+
+        // Crear el gráfico apropiado
+        Object chart = createChartForMineral(mineralName, currentPrice, priceHistory);
+
+        // Limpiar el panel del gráfico
+        chartPanel.removeAll();
+
+        // Añadir el nuevo gráfico
+        if (chart instanceof OHLCChart) {
+            chartPanel.add(new XChartPanel<>((OHLCChart) chart), BorderLayout.CENTER);
+        } else if (chart instanceof XYChart) {
+            chartPanel.add(new XChartPanel<>((XYChart) chart), BorderLayout.CENTER);
+        } else {
+            JLabel errorLabel = new JLabel("Error al crear el gráfico", JLabel.CENTER);
+            errorLabel.setFont(UI_FONT);
+            errorLabel.setForeground(Color.RED);
+            chartPanel.add(errorLabel, BorderLayout.CENTER);
+        }
+
+        // Añadir panel de botones de compra
+        JPanel purchasePanel = new JPanel(new FlowLayout());
+        purchasePanel.setBackground(CARD_BG_LIGHT);
+
+        JButton confirmBuyButton = createModernButton("✅ Confirmar Compra - $" + String.format("%.2f", currentPrice), SUCCESS_COLOR, Color.WHITE);
+        confirmBuyButton.addActionListener(e -> executePurchase(mineralName, currentPrice));
+
+        JButton cancelButton = createModernButton("❌ Cancelar", new Color(220, 53, 69), Color.WHITE);
+        cancelButton.addActionListener(e -> {
+            chartTitle.setText("📊 Gráfico de Análisis - Selecciona un mineral para analizar");
+            chartPanel.removeAll();
+            JLabel initialMessage = new JLabel("Haz clic en 'Analizar y Comprar' para ver el gráfico", JLabel.CENTER);
+            initialMessage.setFont(UI_FONT);
+            initialMessage.setForeground(TEXT_SECONDARY_LIGHT);
+            chartPanel.add(initialMessage, BorderLayout.CENTER);
+            chartPanel.revalidate();
+            chartPanel.repaint();
+            currentAnalyzedMineral = null;
+        });
+
+        purchasePanel.add(confirmBuyButton);
+        purchasePanel.add(cancelButton);
+
+        chartPanel.add(purchasePanel, BorderLayout.SOUTH);
+
+        // Actualizar la UI
+        chartPanel.revalidate();
+        chartPanel.repaint();
+
+        // Mover el divisor para mostrar el gráfico
+        JSplitPane mainSplitPane = (JSplitPane) getContentPane().getComponent(1);
+        mainSplitPane.setDividerLocation(0.5); // Mostrar mitad superior e inferior
+    }
+
+    // NUEVO: Método para crear gráficos (similar al de CandlestickChart)
+    private Object createChartForMineral(String mineralName, double currentPrice, List<PriceHistory.PricePoint> priceHistory) {
+        if (priceHistory.size() >= 3) {
+            try {
+                List<Double> timeData = new ArrayList<>();
+                List<Double> openData = new ArrayList<>();
+                List<Double> highData = new ArrayList<>();
+                List<Double> lowData = new ArrayList<>();
+                List<Double> closeData = new ArrayList<>();
+
+                createCandleData(priceHistory, timeData, openData, highData, lowData, closeData);
+
+                OHLCChart chart = new OHLCChartBuilder()
+                        .width(700)
+                        .height(250)
+                        .title("")
+                        .xAxisTitle("Tiempo")
+                        .yAxisTitle("Precio ($)")
+                        .build();
+
+                chart.getStyler().setLegendPosition(Styler.LegendPosition.OutsideS);
+                chart.getStyler().setDefaultSeriesRenderStyle(OHLCSeries.OHLCSeriesRenderStyle.Candle);
+
+                OHLCSeries series = chart.addSeries(mineralName, timeData, openData, highData, lowData, closeData);
+                series.setUpColor(Color.GREEN);
+                series.setDownColor(Color.RED);
+
+                return chart;
+            } catch (Exception e) {
+                System.err.println("Error creando gráfico de velas: " + e.getMessage());
+            }
+        }
+
+        // Gráfico de línea como fallback
+        XYChart chart = new XYChartBuilder()
+                .width(700)
+                .height(250)
+                .title("")
+                .xAxisTitle("Tiempo")
+                .yAxisTitle("Precio ($)")
+                .build();
+
+        List<Double> xData = new ArrayList<>();
+        List<Double> yData = new ArrayList<>();
+
+        for (int i = 0; i < priceHistory.size(); i++) {
+            xData.add((double) i);
+            yData.add(priceHistory.get(i).getPrice());
+        }
+
+        XYSeries series = chart.addSeries("Tendencia", xData, yData);
+        series.setMarker(SeriesMarkers.NONE);
+        series.setLineColor(Color.BLUE);
+
+        // Añadir línea del precio actual
+        if (!xData.isEmpty()) {
+            XYSeries currentPriceSeries = chart.addSeries("Precio Actual",
+                    new double[]{xData.get(0), xData.get(xData.size()-1)},
+                    new double[]{currentPrice, currentPrice});
+            currentPriceSeries.setMarker(SeriesMarkers.NONE);
+            currentPriceSeries.setLineColor(Color.RED);
+            currentPriceSeries.setLineStyle(new BasicStroke(2.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{9}, 0));
+        }
+
+        chart.getStyler().setLegendPosition(Styler.LegendPosition.OutsideS);
+
+        return chart;
+    }
+
+    // NUEVO: Método para crear datos de velas
+    private void createCandleData(List<PriceHistory.PricePoint> priceHistory,
+                                  List<Double> timeData, List<Double> openData,
+                                  List<Double> highData, List<Double> lowData,
+                                  List<Double> closeData) {
+
+        if (priceHistory.size() < 2) {
+            double price = priceHistory.get(0).getPrice();
+            timeData.add(0.0);
+            openData.add(price);
+            highData.add(price * 1.1);
+            lowData.add(price * 0.9);
+            closeData.add(price);
+            return;
+        }
+
+        int pointsPerCandle = Math.max(1, (int) Math.ceil(priceHistory.size() / 5.0));
+
+        for (int i = 0; i < priceHistory.size(); i += pointsPerCandle) {
+            int endIndex = Math.min(i + pointsPerCandle, priceHistory.size());
+            List<PriceHistory.PricePoint> candlePoints = priceHistory.subList(i, endIndex);
+
+            if (candlePoints.isEmpty()) continue;
+
+            double open = candlePoints.get(0).getPrice();
+            double close = candlePoints.get(candlePoints.size() - 1).getPrice();
+            double high = candlePoints.stream().mapToDouble(PriceHistory.PricePoint::getPrice).max().orElse(open);
+            double low = candlePoints.stream().mapToDouble(PriceHistory.PricePoint::getPrice).min().orElse(open);
+
+            timeData.add((double) i);
+            openData.add(open);
+            highData.add(high);
+            lowData.add(low);
+            closeData.add(close);
+        }
+    }
+
+    // NUEVO: Método para actualizar el gráfico actual
+    private void refreshCurrentChart() {
+        if (currentAnalyzedMineral != null) {
+            double currentPrice = economy.getBuyPrice(currentAnalyzedMineral);
+            List<PriceHistory.PricePoint> priceHistory = economy.getPriceHistory(currentAnalyzedMineral);
+            showIntegratedChart(currentAnalyzedMineral, priceHistory, currentPrice);
+        } else {
+            showMessage("No hay ningún mineral siendo analizado actualmente", "Información");
+        }
+    }
+
     private void executePurchase(String mineralName, double price) {
         if (userState.getMoney() >= price) {
             userState.setMoney(userState.getMoney() - price);
@@ -300,6 +530,18 @@ public class StoreWindow extends JFrame {
             updateMoneyDisplay();
             updateInventoryDisplay();
             showMessage("¡Compraste " + mineralName + "!", "Éxito");
+
+            // Limpiar el gráfico después de comprar
+            chartTitle.setText("📊 Gráfico de Análisis - Selecciona un mineral para analizar");
+            chartPanel.removeAll();
+            JLabel initialMessage = new JLabel("Haz clic en 'Analizar y Comprar' para ver el gráfico", JLabel.CENTER);
+            initialMessage.setFont(UI_FONT);
+            initialMessage.setForeground(TEXT_SECONDARY_LIGHT);
+            chartPanel.add(initialMessage, BorderLayout.CENTER);
+            chartPanel.revalidate();
+            chartPanel.repaint();
+            currentAnalyzedMineral = null;
+
         } else {
             showMessage("¡No tienes suficiente dinero!", "Error");
         }
@@ -348,6 +590,11 @@ public class StoreWindow extends JFrame {
         mineralList.setListData(mineralArray);
 
         updateInventoryDisplay();
+
+        // Actualizar gráfico si hay uno mostrándose
+        if (currentAnalyzedMineral != null) {
+            refreshCurrentChart();
+        }
     }
 
     private void updateMoneyDisplay() {

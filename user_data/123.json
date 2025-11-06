@@ -1,5 +1,5 @@
 {
-  "money": 98845.5,
+  "money": 98818.86,
   "inventory": {
     "⛏️ Carbón": 0,
     "Rigodinita": 0,
@@ -37,6 +37,10 @@
     "Rigogeno": 0,
     "Rigogema": 0,
     "Rigoferrum": 0,
-    "Rigostan": 0
+    "Rigostan": 0,
+    "Rigobaltita": 0,
+    "Rigominio": 1,
+    "Rigoplata": 0,
+    "Rigorodio": 0
   }
 }
